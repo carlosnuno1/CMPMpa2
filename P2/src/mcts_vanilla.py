@@ -3,76 +3,9 @@ from random import choice
 from math import sqrt, log
 
 num_nodes = 1000    # at 1000 for testing against rollout
+nodes = input("how many nodes: ")
+num_nodes = int(nodes)
 explore_faction = sqrt(2)   # changed from 2
-
-def ucb(node, parent, identity):
-    """
-    Calculate Upper Confidence Bound for trees (UCT) value for a node.
-    This balances exploitation (winning moves) with exploration (unexplored moves).
-    
-    Args:
-        node: The child node to calculate UCB for
-        parent: The parent of the child node
-        identity: The bot's player number (1 or 2)
-    Returns:
-        The UCB value for this node
-    """
-    if node.visits == 0:
-        return float('inf')  # unvisited nodes potential set to inf
-    
-    # Calculate win rate
-    win_rate = node.wins / node.visits
-    # If its opponents turn, invert win rate 
-    if parent.visits % 2 != identity - 1:
-        win_rate = 1 - win_rate
-    
-    # UCB = win_rate + exploration_term
-    return win_rate + explore_faction * sqrt(2 * log(parent.visits) / node.visits)
-
-def is_win(board, state, identity):
-    """
-    Check if the given player has won the game.
-    
-    Args:
-        board: The game board
-        state: Current game state
-        identity: Player number to check for win
-    Returns:
-        True if player has won, False otherwise
-    """
-    points = board.points_values(state)
-    if points is None:
-        return False
-    return points[identity] == 1
-
-def get_best_action(node):
-    """
-    Select the best action from the root node based on both visit count and win rate.
-    
-    Args:
-        node: The root node of our MCTS tree
-    Returns:
-        The action with the best combined score
-    """
-    best_score = float('-inf')
-    best_action = None
-    
-    for action, child in node.child_nodes.items():
-        if child.visits == 0:
-            continue
-        
-        # Score combines win rate , small bonus for highly visited nodes
-        score = (child.wins / child.visits) + 0.1 * sqrt(child.visits)
-        if score > best_score:
-            best_score = score
-            best_action = action
-    
-    # If no good move go back to most visited node
-    if best_action is None:
-        best_action = max(node.child_nodes.items(), 
-                         key=lambda x: x[1].visits)[0]
-    
-    return best_action
 
 def traverse_nodes(node, board, state, identity):
     """
@@ -175,6 +108,75 @@ def backpropagate(node, won):
         node.visits += 1
         node.wins += won
         node = node.parent
+
+def ucb(node, parent, identity):
+    """
+    Calculate Upper Confidence Bound for trees (UCT) value for a node.
+    This balances exploitation (winning moves) with exploration (unexplored moves).
+    
+    Args:
+        node: The child node to calculate UCB for
+        parent: The parent of the child node
+        identity: The bot's player number (1 or 2)
+    Returns:
+        The UCB value for this node
+    """
+    if node.visits == 0:
+        return float('inf')  # unvisited nodes potential set to inf
+    
+    # Calculate win rate
+    win_rate = node.wins / node.visits
+    # If its opponents turn, invert win rate 
+    if parent.visits % 2 != identity - 1:
+        win_rate = 1 - win_rate
+    
+    # UCB = win_rate + exploration_term
+    return win_rate + explore_faction * sqrt(2 * log(parent.visits) / node.visits)
+
+def is_win(board, state, identity):
+    """
+    Check if the given player has won the game.
+    
+    Args:
+        board: The game board
+        state: Current game state
+        identity: Player number to check for win
+    Returns:
+        True if player has won, False otherwise
+    """
+    points = board.points_values(state)
+    if points is None:
+        return False
+    return points[identity] == 1
+
+def get_best_action(node):
+    """
+    Select the best action from the root node based on both visit count and win rate.
+    
+    Args:
+        node: The root node of our MCTS tree
+    Returns:
+        The action with the best combined score
+    """
+    best_score = float('-inf')
+    best_action = None
+    
+    for action, child in node.child_nodes.items():
+        if child.visits == 0:
+            continue
+        
+        # Score combines win rate , small bonus for highly visited nodes
+        score = (child.wins / child.visits) + 0.1 * sqrt(child.visits)
+        if score > best_score:
+            best_score = score
+            best_action = action
+    
+    # If no good move go back to most visited node
+    if best_action is None:
+        best_action = max(node.child_nodes.items(), 
+                         key=lambda x: x[1].visits)[0]
+    
+    return best_action
 
 def think(board, state):
     """
